@@ -5,94 +5,239 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Synth1 .sy1 → JSON Converter</title>
 <style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0f172a;
-  color: #e5e7eb;
-  margin: 0;
-  padding: 20px;
-}
+  :root {
+    --bg: #0f172a;
+    --card: #111827;
+    --card-2: #020617;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --border: #1f2937;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --output: #22c55e;
+  }
 
-.container {
-  max-width: 1000px;
-  margin: auto;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-h1 {
-  font-size: 24px;
-  margin-bottom: 10px;
-}
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+    color: var(--text);
+    margin: 0;
+    padding: 24px;
+  }
 
-.card {
-  background: #111827;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-}
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
 
-textarea {
-  width: 100%;
-  height: 300px;
-  background: #020617;
-  color: #22c55e;
-  border: 1px solid #1f2937;
-  border-radius: 10px;
-  padding: 10px;
-  font-family: monospace;
-}
+  h1 {
+    font-size: 28px;
+    margin: 0 0 8px;
+  }
 
-button {
-  background: #2563eb;
-  border: none;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 10px;
-  cursor: pointer;
-  margin-right: 10px;
-}
+  .subtitle {
+    color: var(--muted);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
 
-button:hover {
-  background: #1d4ed8;
-}
+  .card {
+    background: rgba(17, 24, 39, 0.96);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.28);
+  }
 
-input[type=file] {
-  margin-bottom: 10px;
-}
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+  }
 
-.footer {
-  opacity: 0.6;
-  font-size: 12px;
-}
+  input[type=file] {
+    display: block;
+    width: 100%;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
 
+  button {
+    background: var(--primary);
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease, transform 0.04s ease;
+  }
+
+  button:hover {
+    background: var(--primary-hover);
+  }
+
+  button:active {
+    transform: translateY(1px);
+  }
+
+  button.secondary {
+    background: #374151;
+  }
+
+  button.secondary:hover {
+    background: #4b5563;
+  }
+
+  button.success {
+    background: var(--success);
+  }
+
+  button.success:hover {
+    background: #15803d;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .status {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #0b1220;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
+  .status.ok {
+    border-color: rgba(34, 197, 94, 0.35);
+    color: #bbf7d0;
+  }
+
+  .status.warn {
+    border-color: rgba(245, 158, 11, 0.35);
+    color: #fde68a;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 380px;
+    resize: vertical;
+    background: var(--card-2);
+    color: var(--output);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .meta-item {
+    background: #0b1220;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .meta-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .meta-value {
+    font-weight: 700;
+  }
+
+  .footer {
+    opacity: 0.75;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  code {
+    background: #0b1220;
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
 </style>
 </head>
 <body>
-
 <div class="container">
+  <h1>🎛 Synth1 .sy1 → JSON Converter</h1>
+  <div class="subtitle">
+    Synth1 の <code>.sy1</code> ファイルをローカルで読み込み、JSON に変換します。<br>
+    単一ファイルはそのまま JSON 保存、複数ファイルは ZIP で一括保存できます。
+  </div>
 
-<h1>🎛 Synth1 .sy1 → JSON Converter</h1>
+  <div class="card">
+    <input type="file" id="fileInput" accept=".sy1,text/plain" multiple>
+    <div class="controls">
+      <button id="convertBtn" onclick="convert()">Convert to JSON</button>
+      <button id="downloadJsonBtn" class="secondary" onclick="downloadJSON()" disabled>Download JSON</button>
+      <button id="downloadZipBtn" class="success" onclick="downloadZIP()" disabled>Download ZIP</button>
+      <button class="secondary" onclick="clearAll()">Clear</button>
+    </div>
+    <div id="status" class="status">.sy1 ファイルを選択して「Convert to JSON」を押してください。</div>
 
-<div class="card">
-<input type="file" id="fileInput" accept=".sy1">
-<br>
-<button onclick="convert()">Convert to JSON</button>
-<button onclick="downloadJSON()">Download JSON</button>
+    <div class="meta">
+      <div class="meta-item">
+        <div class="meta-label">選択ファイル数</div>
+        <div id="metaFileCount" class="meta-value">0</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">変換成功数</div>
+        <div id="metaConverted" class="meta-value">0</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">検出パラメータ数</div>
+        <div id="metaParams" class="meta-value">0</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">表示モード</div>
+        <div id="metaMode" class="meta-value">未変換</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">JSON Output</h3>
+    <textarea id="output" spellcheck="false" placeholder="ここに変換後のJSONが表示されます"></textarea>
+  </div>
+
+  <div class="footer">
+    Local only / no upload. 変換処理はブラウザ内のみで実行されます。<br>
+    ※ <code>parameterMap</code> は必要に応じて実際の Synth1 仕様に合わせて調整してください。
+  </div>
 </div>
 
-<div class="card">
-<h3>JSON Output</h3>
-<textarea id="output"></textarea>
-</div>
-
-<div class="footer">
-Synth1 .sy1 → JSON converter (local only / no upload)
-</div>
-
-</div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-
 const parameterMap = {
   0: "osc1_shape",
   1: "osc2_shape",
@@ -104,7 +249,6 @@ const parameterMap = {
   7: "osc2_ring_mod",
   8: "osc_pulse_width",
   9: "osc_key_shift",
-
   10: "filter_type",
   11: "filter_attack",
   12: "filter_decay",
@@ -113,125 +257,83 @@ const parameterMap = {
   15: "filter_cutoff",
   16: "filter_resonance",
   17: "filter_env_amount",
-
   18: "amp_attack",
   19: "amp_decay",
   20: "amp_sustain",
   21: "amp_release",
   22: "amp_gain",
-
   23: "lfo1_dest",
   24: "lfo1_wave",
   25: "lfo1_speed",
   26: "lfo1_depth",
   27: "lfo1_delay",
-
   28: "lfo2_dest",
   29: "lfo2_wave",
   30: "lfo2_speed",
   31: "lfo2_depth",
   32: "lfo2_delay",
-
   33: "chorus_type",
   34: "chorus_depth",
-
   35: "delay_time",
   36: "delay_feedback",
   37: "delay_mix",
-
   38: "unison_mode",
   39: "unison_detune",
   40: "unison_pan",
   41: "unison_pitch",
-
   42: "arp_mode",
   43: "arp_speed",
   44: "arp_gate",
   45: "arp_range",
-
   46: "mod_env_attack",
   47: "mod_env_decay",
   48: "mod_env_sustain",
   49: "mod_env_release",
-
   50: "velocity_to_amp",
   51: "velocity_to_filter",
-
   52: "portamento",
   53: "portamento_mode",
-
   54: "osc1_fm_amount",
   55: "osc2_fm_amount",
-
   56: "filter_keytrack",
   57: "filter_drive",
-
   58: "chorus_rate",
   59: "chorus_mix",
-
   60: "delay_sync",
   61: "delay_tone",
-
   62: "lfo1_key_sync",
   63: "lfo2_key_sync",
-
   64: "osc1_octave",
   65: "osc2_octave",
-
   66: "osc1_semitone",
   67: "osc2_semitone",
-
   68: "noise_level",
-
   69: "pan",
-
   70: "mono_mode",
   71: "legato",
-
   72: "bend_range",
-
   73: "modwheel_lfo",
-
   74: "lfo1_fade",
   75: "lfo2_fade",
-
   76: "env_velocity",
-
   77: "filter_velocity",
-
   78: "osc_mix_velocity",
-
   79: "chorus_enable",
-
   80: "delay_enable",
-
   81: "arp_enable",
-
   82: "lfo1_sync",
   83: "lfo2_sync",
-
   84: "filter_slope",
-
   85: "osc_phase",
-
   86: "random_phase",
-
   87: "detune_spread",
-
   88: "voice_mode",
-
   89: "polyphony",
-
   90: "master_tune",
-
   91: "velocity_curve",
-
   92: "aftertouch_lfo",
-
   93: "aftertouch_filter",
-
   94: "aftertouch_amp",
-
   95: "reserved_95",
   96: "reserved_96",
   97: "reserved_97",
@@ -239,62 +341,210 @@ const parameterMap = {
 };
 
 let currentJSON = null;
+let batchJSON = [];
 
-function convert() {
-  const file = document.getElementById("fileInput").files[0];
-  if (!file) return alert(".sy1 fileを選択してください");
+const fileInput = document.getElementById("fileInput");
+const output = document.getElementById("output");
+const statusEl = document.getElementById("status");
+const downloadJsonBtn = document.getElementById("downloadJsonBtn");
+const downloadZipBtn = document.getElementById("downloadZipBtn");
 
-  const reader = new FileReader();
+fileInput.addEventListener("change", () => {
+  document.getElementById("metaFileCount").textContent = String(fileInput.files.length || 0);
+});
 
-  reader.onload = function(e) {
-    const text = e.target.result;
-    const lines = text.split("\n");
+function setStatus(message, type = "") {
+  statusEl.className = "status" + (type ? " " + type : "");
+  statusEl.textContent = message;
+}
 
-    let header = {};
-    let params = {};
+function updateMeta({ fileCount = 0, converted = 0, params = 0, mode = "未変換" } = {}) {
+  document.getElementById("metaFileCount").textContent = String(fileCount);
+  document.getElementById("metaConverted").textContent = String(converted);
+  document.getElementById("metaParams").textContent = String(params);
+  document.getElementById("metaMode").textContent = mode;
+}
 
-    lines.forEach(line => {
-      line = line.trim();
+function clearAll() {
+  fileInput.value = "";
+  currentJSON = null;
+  batchJSON = [];
+  output.value = "";
+  downloadJsonBtn.disabled = true;
+  downloadZipBtn.disabled = true;
+  updateMeta({ fileCount: 0, converted: 0, params: 0, mode: "未変換" });
+  setStatus(".sy1 ファイルを選択して「Convert to JSON」を押してください。");
+}
 
-      if (line.startsWith("--") && line.endsWith("--")) {
-        header.name = line.replace(/--/g, "");
-      }
-      else if (line.includes("=")) {
-        const [k, v] = line.split("=");
-        header[k.trim()] = v.trim();
-      }
-      else if (line.includes(",")) {
-        const [index, value] = line.split(",");
-        const key = parameterMap[index] || `param_${index}`;
-        params[key] = Number(value);
-      }
-    });
+function parseSy1Text(text) {
+  const lines = text.split(/\r?\n/);
+  const header = {};
+  const parameters = {};
 
-    currentJSON = {
-      header,
-      parameters: params
-    };
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
 
-    document.getElementById("output").value = JSON.stringify(currentJSON, null, 2);
+    if (line.startsWith("--") && line.endsWith("--") && line.length >= 4) {
+      header.name = line.replace(/^--|--$/g, "").trim();
+      continue;
+    }
+
+    const eqIndex = line.indexOf("=");
+    if (eqIndex !== -1) {
+      const key = line.slice(0, eqIndex).trim();
+      const value = line.slice(eqIndex + 1).trim();
+      if (key) header[key] = value;
+      continue;
+    }
+
+    const commaIndex = line.indexOf(",");
+    if (commaIndex !== -1) {
+      const rawIndex = line.slice(0, commaIndex).trim();
+      const rawValue = line.slice(commaIndex + 1).trim();
+
+      if (!rawIndex) continue;
+
+      const indexNum = Number(rawIndex);
+      const key = Number.isInteger(indexNum)
+        ? (parameterMap[indexNum] || `param_${indexNum}`)
+        : `param_${rawIndex}`;
+
+      const valueNum = Number(rawValue);
+      parameters[key] = Number.isNaN(valueNum) ? rawValue : valueNum;
+    }
   }
 
-  reader.readAsText(file);
+  return { header, parameters };
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(String(e.target.result || ""));
+    reader.onerror = () => reject(new Error("ファイル読み込みに失敗しました"));
+    reader.readAsText(file);
+  });
+}
+
+async function convert() {
+  const files = Array.from(fileInput.files || []);
+  if (!files.length) {
+    alert(".sy1 ファイルを選択してください");
+    return;
+  }
+
+  currentJSON = null;
+  batchJSON = [];
+  output.value = "";
+  downloadJsonBtn.disabled = true;
+  downloadZipBtn.disabled = true;
+
+  setStatus("変換中...", "warn");
+  updateMeta({ fileCount: files.length, converted: 0, params: 0, mode: files.length === 1 ? "単一" : "複数" });
+
+  const errors = [];
+
+  for (const file of files) {
+    try {
+      const text = await readFileAsText(file);
+      const parsed = parseSy1Text(text);
+      const paramCount = Object.keys(parsed.parameters).length;
+      const headerCount = Object.keys(parsed.header).length;
+
+      if (paramCount === 0 && headerCount === 0) {
+        throw new Error("ヘッダ・パラメータを検出できませんでした");
+      }
+
+      batchJSON.push({
+        source_file: file.name,
+        output_file: file.name.replace(/\.sy1$/i, "") + ".json",
+        data: parsed
+      });
+    } catch (error) {
+      errors.push(`${file.name}: ${error.message}`);
+    }
+  }
+
+  if (!batchJSON.length) {
+    setStatus("変換に失敗しました。\n" + errors.join("\n"), "warn");
+    updateMeta({ fileCount: files.length, converted: 0, params: 0, mode: "失敗" });
+    return;
+  }
+
+  if (batchJSON.length === 1) {
+    currentJSON = batchJSON[0].data;
+    output.value = JSON.stringify(currentJSON, null, 2);
+  } else {
+    output.value = JSON.stringify(batchJSON, null, 2);
+  }
+
+  const lastParamCount = Object.keys(batchJSON[batchJSON.length - 1].data.parameters || {}).length;
+  updateMeta({
+    fileCount: files.length,
+    converted: batchJSON.length,
+    params: lastParamCount,
+    mode: batchJSON.length === 1 ? "単一JSON" : "複数JSON/ZIP"
+  });
+
+  downloadJsonBtn.disabled = false;
+  downloadZipBtn.disabled = false;
+
+  if (errors.length) {
+    setStatus(`変換完了: ${batchJSON.length}/${files.length} 件成功\n` + errors.join("\n"), "warn");
+  } else {
+    setStatus(`変換完了: ${batchJSON.length}/${files.length} 件成功`, "ok");
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function downloadJSON() {
-  if (!currentJSON) return;
+  if (!batchJSON.length) {
+    alert("先に変換してください");
+    return;
+  }
 
-  const blob = new Blob([
-    JSON.stringify(currentJSON, null, 2)
-  ], { type: "application/json" });
+  if (batchJSON.length === 1) {
+    const item = batchJSON[0];
+    const blob = new Blob([JSON.stringify(item.data, null, 2)], { type: "application/json" });
+    downloadBlob(blob, item.output_file);
+    return;
+  }
 
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "synth1_patch.json";
-  a.click();
+  const combined = batchJSON.map(item => ({
+    source_file: item.source_file,
+    output_file: item.output_file,
+    data: item.data
+  }));
+
+  const blob = new Blob([JSON.stringify(combined, null, 2)], { type: "application/json" });
+  downloadBlob(blob, "synth1_patches.json");
 }
 
-</script>
+async function downloadZIP() {
+  if (!batchJSON.length) {
+    alert("先に変換してください");
+    return;
+  }
 
+  const zip = new JSZip();
+  batchJSON.forEach(item => {
+    zip.file(item.output_file, JSON.stringify(item.data, null, 2));
+  });
+
+  const content = await zip.generateAsync({ type: "blob" });
+  downloadBlob(content, "synth1_json.zip");
+}
+</script>
 </body>
 </html>
