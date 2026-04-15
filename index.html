@@ -220,7 +220,7 @@ document.getElementById("file").addEventListener("change", async (e) => {
 
 function parseSY1(text) {
 
-  const lines = text.split(/?/);
+  const lines = text.split(/\r?\n/);
 
   if (lines.length < 3) {
     throw new Error("Invalid sy1 file");
