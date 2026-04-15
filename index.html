@@ -1,6 +1,196 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Synth1.sy1 →.json 変換ツール</title>
@@ -110,7 +300,7 @@
 <body>
   <div class="container">
     <h1>Synth1.sy1 →.json</h1>
-    <p class="subtitle">Synth1のパッチファイルをJSONに変換。バージョン自動判定対応【161532635336134376†L7-L9】</p>
+    <p class="subtitle">Synth1のパッチファイルをJSONに変換。バージョン自動判定対応</p>
 
     <div class="drop-zone" id="dropZone">
       <p>📁.sy1ファイルをドラッグ&ドロップ</p>
@@ -134,7 +324,6 @@
   </div>
 
   <script>
-    // ===== Synth1.sy1 →.json 変換ロジック =====
     const PARAM_MAP_V1_13 = {
       0: "osc1_shape", 1: "osc2_shape", 2: "osc2_pitch", 3: "osc2_fine_tune",
       4: "osc2_kbd_track", 5: "osc_mix", 6: "osc2_sync", 7: "osc2_ring_mod",
@@ -171,5 +360,137 @@
       "v1.13": 98
     };
 
-    function detectVersion() {
+    function detectVersion(versionStr) {
+      if (!versionStr) return "v1.13";
+      const v = versionStr.toLowerCase().trim();
+      if (v.includes("1.13")) return "v1.13";
+      if (v.includes("1.12")) return "v1.12";
+      if (v.includes("1.10")) return "v1.10";
+      if (v.includes("1.07")) return "v1.07";
+      return "v1.13";
     }
+
+    function parseSy1(text) {
+      const lines = text.replace(/\r\n/g, "\n").split("\n").filter(l => l.trim()!=="");
+      if (lines.length < 4) throw new Error("Invalid.sy1: 行数が少なすぎます");
+
+      const patchName = lines[0].trim();
+      const color = lines[1].trim();
+      const versionRaw = lines[2].trim();
+      const version = detectVersion(versionRaw);
+      const maxParam = VERSION_MAX_PARAM[version]?? 98;
+
+      const paramsRaw = {};
+      for (let i = 3; i < lines.length; i++) {
+        const [numStr, valStr] = lines[i].split(",");
+        const num = parseInt(numStr, 10);
+        const val = parseInt(valStr, 10);
+        if (!isNaN(num) &&!isNaN(val)) {
+          paramsRaw[num] = val;
+        }
+      }
+
+      const params = {};
+      for (let i = 0; i <= maxParam; i++) {
+        const key = PARAM_MAP_V1_13[i] || `unknown_${i}`;
+        params[key] = paramsRaw[i]?? null;
+      }
+
+      return {
+        meta: {
+          name: patchName,
+          color: color,
+          version: versionRaw,
+          detectedVersion: version
+        },
+        parameters: params,
+        raw: paramsRaw
+      };
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const result = document.getElementById('result');
+    const meta = document.getElementById('meta');
+    const jsonOutput = document.getElementById('jsonOutput');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const errorDiv = document.getElementById('error');
+    let currentJson = null;
+    let currentFilename = 'patch.json';
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+    function handleFiles(files) {
+      if (files.length === 0) return;
+      const file = files[0];
+      if (!file.name.endsWith('.sy1')) {
+        showError('.sy1ファイルを選択してください');
+        return;
+      }
+
+      currentFilename = file.name.replace(/\.sy1$/i, '.json');
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          currentJson = parseSy1(e.target.result);
+          showResult(currentJson);
+          hideError();
+        } catch (err) {
+          showError(`変換エラー: ${err.message}`);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function showResult(data) {
+      meta.innerHTML = `
+        <span>パッチ名: <strong>${data.meta.name}</strong></span>
+        <span>バージョン: <strong>${data.meta.detectedVersion}</strong></span>
+        <span>カラー: <strong>${data.meta.color}</strong></span>
+      `;
+      jsonOutput.textContent = JSON.stringify(data, null, 2);
+      result.classList.add('show');
+    }
+
+    function showError(msg) {
+      errorDiv.textContent = msg;
+      errorDiv.classList.add('show');
+      result.classList.remove('show');
+    }
+
+    function hideError() {
+      errorDiv.classList.remove('show');
+    }
+
+    function resetUI() {
+      result.classList.remove('show');
+      hideError();
+      fileInput.value = '';
+      currentJson = null;
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      if (!currentJson) return;
+      const blob = new Blob([JSON.stringify(currentJson, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = currentFilename;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
