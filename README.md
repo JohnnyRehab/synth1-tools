@@ -25,3 +25,4 @@ Synth1 は長年にわたり大量のパッチ資産が存在しますが、
 ## デモ
 
 GitHub Pages を有効にすると以下のようにアクセスできます：
+https://johnnyrehab.github.io/synth1-tools/
