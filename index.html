@@ -228,8 +228,8 @@ function parseSY1(text) {
 
   const result = {
     name: lines[0]?.trim() || "",
-    color: lines[1]?.trim() || "",
-    version: lines[2]?.trim() || "",
+    color: (lines[1]?.includes("=") ? lines[1].split("=")[1] : lines[1])?.trim() || "",
+    version: (lines[2]?.includes("=") ? lines[2].split("=")[1] : lines[2])?.trim() || "",
     params: {},
     named: {}
   };
