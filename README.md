@@ -14,10 +14,9 @@ Synth1のプリセットファイル `.sy1` を `.json` に変換するツール
 - **rawデータ保持**: デバッグ用に `番号:値` のオブジェクトも出力
 
 ## Demo
+https://johnnyrehab.github.io/synth1-tools/
 
 `index.html` をブラウザで開くだけで使えます。サーバー不要。
-
-![demo](https://via.placeholder.com/800x400/1a1a1a/4fc3f7?text=Drag+%26+Drop+.sy1+to+Convert)
 
 ## Usage
 
@@ -36,4 +35,3 @@ node sy1-to-json.js./presets/lead.sy1 >./output/lead.json
 for file in./presets/*.sy1; do
   node sy1-to-json.js "$file" > "./json/$(basename "$file".sy1).json"
 done
-https://johnnyrehab.github.io/synth1-tools/
