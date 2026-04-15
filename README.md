@@ -25,13 +25,3 @@ https://johnnyrehab.github.io/synth1-tools/
 2. `index.html` をブラウザで開く
 3. `.sy1` ファイルをドラッグ&ドロップ
 4. 「.jsonをダウンロード」ボタンで保存
-
-### Node.js CLIで使う
-```bash
-# 単体ファイル変換
-node sy1-to-json.js./presets/lead.sy1 >./output/lead.json
-
-# バッチ変換の例
-for file in./presets/*.sy1; do
-  node sy1-to-json.js "$file" > "./json/$(basename "$file".sy1).json"
-done
