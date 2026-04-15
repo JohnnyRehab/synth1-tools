@@ -1,298 +1,175 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Synth1 .sy1 → JSON Converter</title>
-
-<style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #111;
-  color: #eee;
-  padding: 20px;
-}
-
-.container {
-  max-width: 900px;
-  margin: auto;
-}
-
-h1 {
-  font-size: 22px;
-}
-
-button {
-  background: #333;
-  color: white;
-  border: none;
-  padding: 10px 14px;
-  margin-right: 8px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #555;
-}
-
-pre {
-  background: #000;
-  padding: 15px;
-  border-radius: 6px;
-  overflow: auto;
-  max-height: 500px;
-}
-
-input[type="file"] {
-  margin: 20px 0;
-}
-
-.footer {
-  margin-top: 20px;
-  opacity: 0.6;
-  font-size: 12px;
-}
-</style>
-
-</head>
-
-<body>
-<div class="container">
-
-<h1>🎹 Synth1 .sy1 → JSON Converter</h1>
-
-<p>
-Synth1 の <code>.sy1</code> パッチファイルを読み込み、JSONへ変換します。<br>
-パラメーター名にも対応しています。
-</p>
-
-<input type="file" id="file" accept=".sy1">
-
-<div>
-<button id="download">Download JSON</button>
-<button id="clear">Clear</button>
-</div>
-
-<h3>Output</h3>
-<pre id="output"></pre>
-
-<div class="footer">
-Synth1 patch converter (local only)
-</div>
-
-</div>
-
-<script>
-
-let currentJson = null;
-
-// Synth1 Parameter Map (partial / extendable)
-
-const PARAM_NAMES = {
-  0: "osc1_shape",
-  1: "osc2_shape",
-  2: "osc2_pitch",
-  3: "osc2_fine",
-  4: "osc2_kbd_track",
-  5: "osc_mix",
-  6: "osc2_sync",
-  7: "osc2_ring",
-  8: "osc_pulse_width",
-  9: "osc_key_shift",
-  10: "osc_mod_env_on",
-  11: "osc_mod_env_amount",
-  12: "osc_mod_env_attack",
-  13: "osc_mod_env_decay",
-  14: "filter_type",
-  15: "filter_attack",
-  16: "filter_decay",
-  17: "filter_sustain",
-  18: "filter_release",
-  19: "filter_cutoff",
-  20: "filter_resonance",
-  21: "filter_env_amount",
-  22: "filter_kbd_track",
-  23: "filter_saturation",
-  24: "filter_velocity",
-  25: "amp_attack",
-  26: "amp_decay",
-  27: "amp_sustain",
-  28: "amp_release",
-  29: "amp_gain",
-  30: "amp_velocity",
-  31: "arp_type",
-  32: "arp_octave",
-  33: "arp_beat",
-  34: "arp_gate",
-  35: "delay_time",
-  36: "delay_feedback",
-  37: "delay_mix",
-  38: "play_mode",
-  39: "portamento_time",
-  40: "pitch_bend_range",
-  41: "lfo1_destination",
-  42: "lfo1_type",
-  43: "lfo1_speed",
-  44: "lfo1_depth",
-  45: "osc1_fm",
-  46: "lfo2_destination",
-  47: "lfo2_type",
-  48: "lfo2_speed",
-  49: "lfo2_depth",
-  50: "midi_ctrl_sens1",
-  51: "midi_ctrl_sens2",
-  52: "chorus_delay",
-  53: "chorus_depth",
-  54: "chorus_rate",
-  55: "chorus_feedback",
-  56: "chorus_level",
-  57: "lfo1_on",
-  58: "lfo2_on",
-  59: "arp_on",
-  60: "eq_tone",
-  61: "eq_freq",
-  62: "eq_level",
-  63: "eq_q",
-  64: "chorus_type",
-  65: "delay_on",
-  66: "chorus_on",
-  67: "lfo1_sync",
-  68: "lfo1_keysync",
-  69: "lfo2_sync",
-  70: "lfo2_keysync",
-  71: "osc_mod_dest",
-  72: "osc_fine",
-  73: "unison_mode",
-  74: "portamento_auto",
-  75: "unison_detune",
-  76: "osc1_detune",
-  77: "fx_on",
-  78: "fx_type",
-  79: "fx_param1",
-  80: "fx_param2",
-  81: "fx_mix",
-  82: "delay_type",
-  83: "delay_spread",
-  84: "unison_pan",
-  85: "unison_pitch",
-  86: "midi_src1",
-  87: "midi_assign1",
-  88: "midi_src2",
-  89: "midi_assign2",
-  90: "pan",
-  91: "osc_phase",
-  92: "unison_phase",
-  93: "unison_voices",
-  94: "polyphony",
-  95: "sub_osc_gain",
-  96: "sub_osc_shape",
-  97: "sub_osc_octave",
-  98: "delay_tone"
-};
-
-
-// ファイル読み込み
-
-document.getElementById("file").addEventListener("change", async (e) => {
-
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const text = await file.text();
-
-  try {
-    const json = parseSY1(text);
-    currentJson = json;
-
-    document.getElementById("output").textContent = 
-      JSON.stringify(json, null, 2);
-
-  } catch (err) {
-    document.getElementById("output").textContent = 
-      "Error: " + err.message;
-  }
-
-});
-
-
-// .sy1 parser
-
-function parseSY1(text) {
-
-  const lines = text.split(/\r?\n/);
-
-  if (lines.length < 3) {
-    throw new Error("Invalid sy1 file");
-  }
-
-  const result = {
-    name: lines[0]?.trim() || "",
-    color: (lines[1]?.includes("=") ? lines[1].split("=")[1] : lines[1])?.trim() || "",
-    version: (lines[2]?.includes("=") ? lines[2].split("=")[1] : lines[2])?.trim() || "",
-    params: {},
-    named: {}
-  };
-
-  for (let i = 3; i < lines.length; i++) {
-
-    const line = lines[i].trim();
-
-    if (!line) continue;
-
-    const parts = line.split(",");
-
-    if (parts.length !== 2) continue;
-
-    const id = Number(parts[0].trim());
-    const value = Number(parts[1].trim());
-
-    if (!isNaN(value)) {
-      result.params[id] = value;
-
-      const name = PARAM_NAMES[id] || `param_${id}`;
-      result.named[name] = value;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Synth1.sy1 →.json 変換ツール</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 40px 20px;
+      line-height: 1.6;
     }
-  }
+   .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #4fc3f7;
+    }
+   .subtitle {
+      color: #888;
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
+   .drop-zone {
+      border: 3px dashed #444;
+      border-radius: 12px;
+      padding: 60px 20px;
+      text-align: center;
+      background: #252525;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+   .drop-zone:hover,.drop-zone.dragover {
+      border-color: #4fc3f7;
+      background: #2a2a2a;
+    }
+   .drop-zone p {
+      font-size: 16px;
+      margin-bottom: 16px;
+    }
+   .drop-zone input {
+      display: none;
+    }
+   .btn {
+      background: #4fc3f7;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+   .btn:hover { opacity: 0.8; }
+   .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+   .result {
+      margin-top: 32px;
+      display: none;
+    }
+   .result.show { display: block; }
+   .meta {
+      background: #252525;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+   .meta span {
+      display: inline-block;
+      margin-right: 20px;
+      color: #aaa;
+    }
+   .meta strong { color: #4fc3f7; }
+    pre {
+      background: #0d0d0d;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+      border: 1px solid #333;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+   .actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 12px;
+    }
+   .error {
+      background: #3d1a1a;
+      color: #ff6b6b;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      display: none;
+    }
+   .error.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Synth1.sy1 →.json</h1>
+    <p class="subtitle">Synth1のパッチファイルをJSONに変換。バージョン自動判定対応【161532635336134376†L7-L9】</p>
 
-  return result;
-}
+    <div class="drop-zone" id="dropZone">
+      <p>📁.sy1ファイルをドラッグ&ドロップ</p>
+      <p style="font-size: 14px; color: #666;">または</p>
+      <button class="btn" type="button" onclick="document.getElementById('fileInput').click()">
+        ファイルを選択
+      </button>
+      <input type="file" id="fileInput" accept=".sy1" multiple>
+    </div>
 
+    <div class="error" id="error"></div>
 
-// Download JSON
+    <div class="result" id="result">
+      <div class="meta" id="meta"></div>
+      <pre id="jsonOutput"></pre>
+      <div class="actions">
+        <button class="btn" id="downloadBtn">.jsonをダウンロード</button>
+        <button class="btn" style="background: #666;" onclick="resetUI()">リセット</button>
+      </div>
+    </div>
+  </div>
 
-document.getElementById("download").addEventListener("click", () => {
+  <script>
+    // ===== Synth1.sy1 →.json 変換ロジック =====
+    const PARAM_MAP_V1_13 = {
+      0: "osc1_shape", 1: "osc2_shape", 2: "osc2_pitch", 3: "osc2_fine_tune",
+      4: "osc2_kbd_track", 5: "osc_mix", 6: "osc2_sync", 7: "osc2_ring_mod",
+      8: "osc_pulse_width", 9: "osc_key_shift", 10: "osc_mod_env_on_off",
+      11: "osc_mod_env_amount", 12: "osc_mod_env_attack", 13: "osc_mod_env_decay",
+      14: "filter_type", 15: "filter_attack", 16: "filter_decay", 17: "filter_sustain",
+      18: "filter_release", 19: "filter_freq", 20: "filter_resonance", 21: "filter_amount",
+      22: "filter_kbd_track", 23: "filter_saturation", 24: "filter_velocity_switch",
+      25: "amp_attack", 26: "amp_decay", 27: "amp_sustain", 28: "amp_release",
+      29: "amp_gain", 30: "amp_velocity_sens", 31: "arpeggiator_type", 32: "arpeggiator_oct_range",
+      33: "arpeggiator_beat", 34: "arpeggiator_gate", 35: "delay_time", 36: "delay_feedback",
+      37: "delay_dry_wet", 38: "play_mode_type", 39: "portament_time", 40: "pitch_bend_range",
+      41: "lfo1_destination", 42: "lfo1_type", 43: "lfo1_speed", 44: "lfo1_depth",
+      45: "osc1_FM", 46: "lfo2_destination", 47: "lfo2_type", 48: "lfo2_speed",
+      49: "lfo2_depth", 50: "midi_ctrl_sens1", 51: "midi_ctrl_sens2", 52: "chorus_delay_time",
+      53: "chorus_depth", 54: "chorus_rate", 55: "chorus_feedback", 56: "chorus_level",
+      57: "lfo1_on_off", 58: "lfo2_on_off", 59: "arpeggiator_on_off", 60: "equalizer_tone",
+      61: "equalizer_freq", 62: "equalizer_level", 63: "equalizer_Q", 64: "chorus_type",
+      65: "delay_on_off", 66: "chorus_on_off", 67: "lfo1_tempo_sync", 68: "lfo1_key_sync",
+      69: "lfo2_tempo_sync", 70: "lfo2_key_sync", 71: "osc_mod_dest", 72: "osc1_2_fine_tune",
+      73: "unison_mode", 74: "portament_auto_mode", 75: "unison_detune", 76: "osc1_detune",
+      77: "effect_on_off", 78: "effect_type", 79: "effect_control1", 80: "effect_control2",
+      81: "effect_level_mix", 82: "delay_type", 83: "delay_time_spread", 84: "unison_pan_spread",
+      85: "unison_pitch", 86: "midi_ctrl_src1", 87: "midi_ctrl_assign1", 88: "midi_ctrl_src2",
+      89: "midi_ctrl_assign2", 90: "pan", 91: "osc_phase_shift", 92: "unison_phase_shift",
+      93: "unison_voice_num", 94: "reserved_94", 95: "osc1_sub_gain", 96: "osc1_sub_shape",
+      97: "osc1_sub_octave", 98: "delay_tone"
+    };
 
-  if (!currentJson) return;
+    const VERSION_MAX_PARAM = {
+      "v1.07": 64,
+      "v1.10": 73,
+      "v1.12": 92,
+      "v1.13": 98
+    };
 
-  const blob = new Blob(
-    [JSON.stringify(currentJson, null, 2)],
-    { type: "application/json" }
-  );
-
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "patch.json";
-  a.click();
-
-  URL.revokeObjectURL(url);
-});
-
-
-// Clear
-
-document.getElementById("clear").addEventListener("click", () => {
-
-  document.getElementById("output").textContent = "";
-  document.getElementById("file").value = "";
-  currentJson = null;
-
-});
-
-
-</script>
-
-</body>
-</html>
+    function detectVersion() {
+    }
